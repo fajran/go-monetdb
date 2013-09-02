@@ -43,7 +43,7 @@ The format of the DSN is the following
 ```
 
 Currently, you can only use a domain name or an IPv4 address for the hostname.
-IPv6 address is not yet supported (#2 - feel free to send pull request).
+IPv6 address is not yet supported. [Feel free to send pull request!](https://github.com/fajran/go-monetdb/issues/2)
 
 If the `port` is blank, then the default port `50000` will be used.
 
