@@ -53,7 +53,7 @@ func (c *Conn) Begin() (driver.Tx, error) {
 
 func (c *Conn) cmd(cmd string) (string, error) {
 	if c.mapi == nil {
-		return "", fmt.Errorf("connection closed")
+		return "", fmt.Errorf("Database connection closed")
 	}
 
 	return c.mapi.Cmd(cmd)

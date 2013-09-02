@@ -234,18 +234,18 @@ func (s *Stmt) storeResult(r string) error {
 			return nil
 
 		} else if strings.HasPrefix(line, mapi_MSG_ERROR) {
-			return fmt.Errorf("error: %s", line[1:])
+			return fmt.Errorf("Database error: %s", line[1:])
 
 		}
 	}
 
-	return fmt.Errorf("unknown state: %s", r)
+	return fmt.Errorf("Unknown state: %s", r)
 }
 
 func (s *Stmt) parseTuple(d string) ([]driver.Value, error) {
 	items := strings.Split(d[1:len(d)-1], ",\t")
 	if len(items) != len(s.description) {
-		return nil, fmt.Errorf("length of row doesn't match header")
+		return nil, fmt.Errorf("Length of row doesn't match header")
 	}
 
 	v := make([]driver.Value, len(items))

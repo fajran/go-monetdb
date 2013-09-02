@@ -245,7 +245,7 @@ func toByteString(v driver.Value) (string, error) {
 	case []uint8:
 		return toQuotedString(string(val))
 	default:
-		return "", fmt.Errorf("unsupported type")
+		return "", fmt.Errorf("Unsupported type")
 	}
 }
 
@@ -256,7 +256,7 @@ func toDateTimeString(v driver.Value) (string, error) {
 	case Date:
 		return toQuotedString(fmt.Sprintf("%04d-%02d-%02d", val.Year, val.Month, val.Day))
 	default:
-		return "", fmt.Errorf("unsupported type")
+		return "", fmt.Errorf("Unsupported type")
 	}
 }
 
@@ -283,7 +283,7 @@ func convertToGo(value, dataType string) (driver.Value, error) {
 		value := strings.TrimSpace(value)
 		return mapper(value)
 	}
-	return nil, fmt.Errorf("type not supported: %s", dataType)
+	return nil, fmt.Errorf("Type not supported: %s", dataType)
 }
 
 func convertToMonet(value driver.Value) (string, error) {
@@ -296,5 +296,5 @@ func convertToMonet(value driver.Value) (string, error) {
 	if mapper, ok := toMonetMappers[n]; ok {
 		return mapper(value)
 	}
-	return "", fmt.Errorf("type not supported: %v", t)
+	return "", fmt.Errorf("Type not supported: %v", t)
 }

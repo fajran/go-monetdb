@@ -79,7 +79,7 @@ func (c *MapiConn) Disconnect() {
 
 func (c *MapiConn) Cmd(operation string) (string, error) {
 	if c.State != mapi_STATE_READY {
-		return "", fmt.Errorf("not connected")
+		return "", fmt.Errorf("Database not connected")
 	}
 
 	if err := c.putBlock([]byte(operation)); err != nil {
@@ -106,10 +106,10 @@ func (c *MapiConn) Cmd(operation string) (string, error) {
 		return resp, nil
 
 	} else if strings.HasPrefix(resp, mapi_MSG_ERROR) {
-		return "", fmt.Errorf("Error: %s", resp[1:])
+		return "", fmt.Errorf("Operational error: %s", resp[1:])
 
 	} else {
-		return "", fmt.Errorf("unknown state: %s", resp)
+		return "", fmt.Errorf("Unknown state: %s", resp)
 	}
 }
 
@@ -176,7 +176,7 @@ func (c *MapiConn) tryLogin(iteration int) error {
 
 	} else if strings.HasPrefix(prompt, mapi_MSG_ERROR) {
 		// TODO log error
-		return fmt.Errorf("%s", prompt[1:])
+		return fmt.Errorf("Database error: %s", prompt[1:])
 
 	} else if strings.HasPrefix(prompt, mapi_MSG_REDIRECT) {
 		t := strings.Split(prompt, " ")
@@ -187,7 +187,7 @@ func (c *MapiConn) tryLogin(iteration int) error {
 			if iteration <= 10 {
 				c.tryLogin(iteration + 1)
 			} else {
-				return fmt.Errorf("maximal number of redirects reached (10)")
+				return fmt.Errorf("Maximal number of redirects reached (10)")
 			}
 
 		} else if r[1] == "monetdb" {
@@ -200,10 +200,10 @@ func (c *MapiConn) tryLogin(iteration int) error {
 			c.Connect()
 
 		} else {
-			return fmt.Errorf("unknown redirect: %s", prompt)
+			return fmt.Errorf("Unknown redirect: %s", prompt)
 		}
 	} else {
-		return fmt.Errorf("unknown state: %s", prompt)
+		return fmt.Errorf("Unknown state: %s", prompt)
 	}
 
 	c.State = mapi_STATE_READY

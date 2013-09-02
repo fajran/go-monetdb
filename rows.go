@@ -57,10 +57,10 @@ var cnt = 0
 
 func (r *Rows) Next(dest []driver.Value) error {
 	if !r.active {
-		return fmt.Errorf("rows closed")
+		return fmt.Errorf("Rows closed")
 	}
 	if r.queryId == -1 {
-		return fmt.Errorf("query didn't result in a resultset")
+		return fmt.Errorf("Query didn't result in a resultset")
 	}
 
 	if r.rowNum >= r.rowCount {
