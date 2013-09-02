@@ -3,13 +3,11 @@ package monetdb
 import (
 	"database/sql/driver"
 	"fmt"
-
-	"monetdb/mapi"
 )
 
 type Conn struct {
 	config config
-	mapi   *mapi.Conn
+	mapi   *mapiConn
 }
 
 func newConn(c config) (*Conn, error) {
@@ -18,7 +16,7 @@ func newConn(c config) (*Conn, error) {
 		mapi:   nil,
 	}
 
-	m := mapi.New(c.Hostname, c.Port, c.Username, c.Password, c.Database, "sql")
+	m := newMapi(c.Hostname, c.Port, c.Username, c.Password, c.Database, "sql")
 	err := m.Connect()
 	if err != nil {
 		return conn, err

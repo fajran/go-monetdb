@@ -1,4 +1,4 @@
-package mapi
+package monetdb
 
 import (
 	"bytes"
@@ -16,32 +16,32 @@ import (
 )
 
 const (
-	MAX_PACKAGE_LENGTH = (1024 * 8) - 2
+	mapi_MAX_PACKAGE_LENGTH = (1024 * 8) - 2
 
-	MSG_PROMPT   = ""
-	MSG_INFO     = "#"
-	MSG_ERROR    = "!"
-	MSG_Q        = "&"
-	MSG_QTABLE   = "&1"
-	MSG_QUPDATE  = "&2"
-	MSG_QSCHEMA  = "&3"
-	MSG_QTRANS   = "&4"
-	MSG_QPREPARE = "&5"
-	MSG_QBLOCK   = "&6"
-	MSG_HEADER   = "%"
-	MSG_TUPLE    = "["
-	MSG_REDIRECT = "^"
-	MSG_OK       = "=OK"
+	mapi_MSG_PROMPT   = ""
+	mapi_MSG_INFO     = "#"
+	mapi_MSG_ERROR    = "!"
+	mapi_MSG_Q        = "&"
+	mapi_MSG_QTABLE   = "&1"
+	mapi_MSG_QUPDATE  = "&2"
+	mapi_MSG_QSCHEMA  = "&3"
+	mapi_MSG_QTRANS   = "&4"
+	mapi_MSG_QPREPARE = "&5"
+	mapi_MSG_QBLOCK   = "&6"
+	mapi_MSG_HEADER   = "%"
+	mapi_MSG_TUPLE    = "["
+	mapi_MSG_REDIRECT = "^"
+	mapi_MSG_OK       = "=OK"
 
-	STATE_INIT  = 0
-	STATE_READY = 1
+	mapi_STATE_INIT  = 0
+	mapi_STATE_READY = 1
 )
 
 var (
-	MSG_MORE = string([]byte{1, 2, 10})
+	mapi_MSG_MORE = string([]byte{1, 2, 10})
 )
 
-type Conn struct {
+type mapiConn struct {
 	Hostname string
 	Port     int
 	Username string
@@ -54,8 +54,8 @@ type Conn struct {
 	conn *net.TCPConn
 }
 
-func New(hostname string, port int, username, password, database, language string) *Conn {
-	return &Conn{
+func newMapi(hostname string, port int, username, password, database, language string) *mapiConn {
+	return &mapiConn{
 		Hostname: hostname,
 		Port:     port,
 		Username: username,
@@ -63,18 +63,18 @@ func New(hostname string, port int, username, password, database, language strin
 		Database: database,
 		Language: language,
 
-		State: STATE_INIT,
+		State: mapi_STATE_INIT,
 	}
 }
 
-func (c *Conn) Disconnect() {
-	c.State = STATE_INIT
+func (c *mapiConn) Disconnect() {
+	c.State = mapi_STATE_INIT
 	c.conn.Close()
 	c.conn = nil
 }
 
-func (c *Conn) Cmd(operation string) (string, error) {
-	if c.State != STATE_READY {
+func (c *mapiConn) Cmd(operation string) (string, error) {
+	if c.State != mapi_STATE_READY {
 		return "", fmt.Errorf("not connected")
 	}
 
@@ -91,17 +91,17 @@ func (c *Conn) Cmd(operation string) (string, error) {
 	if len(resp) == 0 {
 		return "", nil
 
-	} else if strings.HasPrefix(resp, MSG_OK) {
+	} else if strings.HasPrefix(resp, mapi_MSG_OK) {
 		return strings.TrimSpace(resp[3:]), nil
 
-	} else if resp == MSG_MORE {
+	} else if resp == mapi_MSG_MORE {
 		// tell server it isn't going to get more
 		return c.Cmd("")
 
-	} else if strings.HasPrefix(resp, MSG_Q) || strings.HasPrefix(resp, MSG_HEADER) || strings.HasPrefix(resp, MSG_TUPLE) {
+	} else if strings.HasPrefix(resp, mapi_MSG_Q) || strings.HasPrefix(resp, mapi_MSG_HEADER) || strings.HasPrefix(resp, mapi_MSG_TUPLE) {
 		return resp, nil
 
-	} else if strings.HasPrefix(resp, MSG_ERROR) {
+	} else if strings.HasPrefix(resp, mapi_MSG_ERROR) {
 		return "", fmt.Errorf("Error: %s", resp[1:])
 
 	} else {
@@ -109,7 +109,7 @@ func (c *Conn) Cmd(operation string) (string, error) {
 	}
 }
 
-func (c *Conn) Connect() error {
+func (c *mapiConn) Connect() error {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
@@ -138,11 +138,11 @@ func (c *Conn) Connect() error {
 	return nil
 }
 
-func (c *Conn) login() error {
+func (c *mapiConn) login() error {
 	return c.tryLogin(0)
 }
 
-func (c *Conn) tryLogin(iteration int) error {
+func (c *mapiConn) tryLogin(iteration int) error {
 	challenge, err := c.getBlock()
 	if err != nil {
 		return err
@@ -164,17 +164,17 @@ func (c *Conn) tryLogin(iteration int) error {
 	if len(prompt) == 0 {
 		// Empty response, server is happy
 
-	} else if prompt == MSG_OK {
+	} else if prompt == mapi_MSG_OK {
 		// pass
 
-	} else if strings.HasPrefix(prompt, MSG_INFO) {
+	} else if strings.HasPrefix(prompt, mapi_MSG_INFO) {
 		// TODO log info
 
-	} else if strings.HasPrefix(prompt, MSG_ERROR) {
+	} else if strings.HasPrefix(prompt, mapi_MSG_ERROR) {
 		// TODO log error
 		return fmt.Errorf("%s", prompt[1:])
 
-	} else if strings.HasPrefix(prompt, MSG_REDIRECT) {
+	} else if strings.HasPrefix(prompt, mapi_MSG_REDIRECT) {
 		t := strings.Split(prompt, " ")
 		r := strings.Split(t[0][1:], ":")
 
@@ -202,12 +202,12 @@ func (c *Conn) tryLogin(iteration int) error {
 		return fmt.Errorf("unknown state: %s", prompt)
 	}
 
-	c.State = STATE_READY
+	c.State = mapi_STATE_READY
 
 	return nil
 }
 
-func (c *Conn) challengeResponse(challenge []byte) (string, error) {
+func (c *mapiConn) challengeResponse(challenge []byte) (string, error) {
 	t := strings.Split(string(challenge), ":")
 	salt := t[0]
 	protocol := t[2]
@@ -250,7 +250,7 @@ func (c *Conn) challengeResponse(challenge []byte) (string, error) {
 	return r, nil
 }
 
-func (c *Conn) getBlock() ([]byte, error) {
+func (c *mapiConn) getBlock() ([]byte, error) {
 	r := new(bytes.Buffer)
 
 	last := 0
@@ -281,7 +281,7 @@ func (c *Conn) getBlock() ([]byte, error) {
 	return r.Bytes(), nil
 }
 
-func (c *Conn) getBytes(count int) ([]byte, error) {
+func (c *mapiConn) getBytes(count int) ([]byte, error) {
 	r := make([]byte, count)
 	b := make([]byte, count)
 
@@ -298,17 +298,17 @@ func (c *Conn) getBytes(count int) ([]byte, error) {
 	return r, nil
 }
 
-func (c *Conn) putBlock(b []byte) error {
+func (c *mapiConn) putBlock(b []byte) error {
 	pos := 0
 	last := 0
 	for last != 1 {
-		end := pos + MAX_PACKAGE_LENGTH
+		end := pos + mapi_MAX_PACKAGE_LENGTH
 		if end > len(b) {
 			end = len(b)
 		}
 		data := b[pos:end]
 		length := len(data)
-		if length < MAX_PACKAGE_LENGTH {
+		if length < mapi_MAX_PACKAGE_LENGTH {
 			last = 1
 		}
 
