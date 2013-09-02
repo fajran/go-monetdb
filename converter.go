@@ -117,14 +117,13 @@ func toInt64(v string) (driver.Value, error) {
 	return r, err
 }
 
-func parseTime(v string) (t driver.Value, err error) {
+func parseTime(v string) (t time.Time, err error) {
 	for _, f := range timeFormats {
 		t, err = time.Parse(f, v)
 		if err == nil {
 			return
 		}
 	}
-	t = nil
 	return
 }
 
@@ -133,11 +132,21 @@ func toBool(v string) (driver.Value, error) {
 }
 
 func toDate(v string) (driver.Value, error) {
-	return parseTime(v)
+	t, err := parseTime(v)
+	if err != nil {
+		return nil, err
+	}
+	year, month, day := t.Date()
+	return Date{year, month, day}, nil
 }
 
 func toTime(v string) (driver.Value, error) {
-	return parseTime(v)
+	t, err := parseTime(v)
+	if err != nil {
+		return nil, err
+	}
+	hour, min, sec := t.Clock()
+	return Time{hour, min, sec}, nil
 }
 func toTimestamp(v string) (driver.Value, error) {
 	return parseTime(v)
@@ -198,6 +207,17 @@ func toByteString(v driver.Value) (string, error) {
 	}
 }
 
+func toDateTimeString(v driver.Value) (string, error) {
+	switch val := v.(type) {
+	case Time:
+		return toQuotedString(fmt.Sprintf("%02d:%02d:%02d", val.Hour, val.Min, val.Sec))
+	case Date:
+		return toQuotedString(fmt.Sprintf("%04d-%02d-%02d", val.Year, val.Month, val.Day))
+	default:
+		return "", fmt.Errorf("unsupported type")
+	}
+}
+
 var toMonetMappers = map[string]toMonetConverter{
 	"int": toString,
 	"int8": toString,
@@ -212,6 +232,8 @@ var toMonetMappers = map[string]toMonetConverter{
 	"nil": toNull,
 	"[]uint8": toByteString,
 	"time.Time": toQuotedString,
+	"monetdb.Time": toDateTimeString,
+	"monetdb.Date": toDateTimeString,
 }
 
 func convertToGo(value, dataType string) (driver.Value, error) {
