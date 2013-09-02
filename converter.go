@@ -15,42 +15,42 @@ import (
 )
 
 const (
-	CHAR      = "char"    // (L) character string with length L
-	VARCHAR   = "varchar" // (L) string with atmost length L
-	CLOB      = "clob"
-	BLOB      = "blob"
-	DECIMAL   = "decimal"  // (P,S)
-	SMALLINT  = "smallint" // 16 bit integer
-	INT       = "int"      // 32 bit integer
-	BIGINT    = "bigint"   // 64 bit integer
-	SERIAL    = "serial"   // special 64 bit integer sequence generator
-	REAL      = "real"     // 32 bit floating point
-	DOUBLE    = "double"   // 64 bit floating point
-	BOOLEAN   = "boolean"
-	DATE      = "date"
-	TIME      = "time"      // (T) time of day
-	TIMESTAMP = "timestamp" // (T) date concatenated with unique time
-	INTERVAL  = "interval"  // (Q) a temporal interval
+	mdb_CHAR      = "char"    // (L) character string with length L
+	mdb_VARCHAR   = "varchar" // (L) string with atmost length L
+	mdb_CLOB      = "clob"
+	mdb_BLOB      = "blob"
+	mdb_DECIMAL   = "decimal"  // (P,S)
+	mdb_SMALLINT  = "smallint" // 16 bit integer
+	mdb_INT       = "int"      // 32 bit integer
+	mdb_BIGINT    = "bigint"   // 64 bit integer
+	mdb_SERIAL    = "serial"   // special 64 bit integer sequence generator
+	mdb_REAL      = "real"     // 32 bit floating point
+	mdb_DOUBLE    = "double"   // 64 bit floating point
+	mdb_BOOLEAN   = "boolean"
+	mdb_DATE      = "date"
+	mdb_TIME      = "time"      // (T) time of day
+	mdb_TIMESTAMP = "timestamp" // (T) date concatenated with unique time
+	mdb_INTERVAL  = "interval"  // (Q) a temporal interval
 
-	MONTH_INTERVAL = "month_interval"
-	SEC_INTERVAL   = "sec_interval"
-	WRD            = "wrd"
-	TINYINT        = "tinyint"
+	mdb_MONTH_INTERVAL = "month_interval"
+	mdb_SEC_INTERVAL   = "sec_interval"
+	mdb_WRD            = "wrd"
+	mdb_TINYINT        = "tinyint"
 
 	// Not on the website:
-	SHORTINT    = "shortint"
-	MEDIUMINT   = "mediumint"
-	LONGINT     = "longint"
-	FLOAT       = "float"
-	TIMESTAMPTZ = "timestamptz"
+	mdb_SHORTINT    = "shortint"
+	mdb_MEDIUMINT   = "mediumint"
+	mdb_LONGINT     = "longint"
+	mdb_FLOAT       = "float"
+	mdb_TIMESTAMPTZ = "timestamptz"
 
 	// full names and aliases, spaces are replaced with underscores
-	CHARACTER               = CHAR
-	CHARACTER_VARYING       = VARCHAR
-	CHARACHTER_LARGE_OBJECT = CLOB
-	BINARY_LARGE_OBJECT     = BLOB
-	NUMERIC                 = DECIMAL
-	DOUBLE_PRECISION        = DOUBLE
+	mdb_CHARACTER               = mdb_CHAR
+	mdb_CHARACTER_VARYING       = mdb_VARCHAR
+	mdb_CHARACHTER_LARGE_OBJECT = mdb_CLOB
+	mdb_BINARY_LARGE_OBJECT     = mdb_BLOB
+	mdb_NUMERIC                 = mdb_DECIMAL
+	mdb_DOUBLE_PRECISION        = mdb_DOUBLE
 )
 
 var timeFormats = []string{
@@ -198,31 +198,31 @@ func toTimestampTz(v string) (driver.Value, error) {
 }
 
 var toGoMappers = map[string]toGoConverter{
-	CHAR:           strip,
-	VARCHAR:        strip,
-	CLOB:           strip,
-	BLOB:           toByteArray,
-	DECIMAL:        toDouble,
-	SMALLINT:       toInt16,
-	INT:            toInt32,
-	WRD:            toInt32,
-	BIGINT:         toInt64,
-	SERIAL:         toInt64,
-	REAL:           toFloat,
-	DOUBLE:         toDouble,
-	BOOLEAN:        toBool,
-	DATE:           toDate,
-	TIME:           toTime,
-	TIMESTAMP:      toTimestamp,
-	TIMESTAMPTZ:    toTimestampTz,
-	INTERVAL:       strip,
-	MONTH_INTERVAL: strip,
-	SEC_INTERVAL:   strip,
-	TINYINT:        toInt8,
-	SHORTINT:       toInt16,
-	MEDIUMINT:      toInt32,
-	LONGINT:        toInt64,
-	FLOAT:          toFloat,
+	mdb_CHAR:           strip,
+	mdb_VARCHAR:        strip,
+	mdb_CLOB:           strip,
+	mdb_BLOB:           toByteArray,
+	mdb_DECIMAL:        toDouble,
+	mdb_SMALLINT:       toInt16,
+	mdb_INT:            toInt32,
+	mdb_WRD:            toInt32,
+	mdb_BIGINT:         toInt64,
+	mdb_SERIAL:         toInt64,
+	mdb_REAL:           toFloat,
+	mdb_DOUBLE:         toDouble,
+	mdb_BOOLEAN:        toBool,
+	mdb_DATE:           toDate,
+	mdb_TIME:           toTime,
+	mdb_TIMESTAMP:      toTimestamp,
+	mdb_TIMESTAMPTZ:    toTimestampTz,
+	mdb_INTERVAL:       strip,
+	mdb_MONTH_INTERVAL: strip,
+	mdb_SEC_INTERVAL:   strip,
+	mdb_TINYINT:        toInt8,
+	mdb_SHORTINT:       toInt16,
+	mdb_MEDIUMINT:      toInt32,
+	mdb_LONGINT:        toInt64,
+	mdb_FLOAT:          toFloat,
 }
 
 func toString(v driver.Value) (string, error) {

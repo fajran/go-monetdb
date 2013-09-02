@@ -87,7 +87,7 @@ func (r *Rows) Next(dest []driver.Value) error {
 }
 
 const (
-	ARRAY_SIZE = 100
+	c_ARRAY_SIZE = 100
 )
 
 func min(a, b int) int {
@@ -104,7 +104,7 @@ func (r *Rows) fetchNext() error {
 	}
 
 	r.offset += len(r.rows)
-	end := min(r.rowCount, r.rowNum+ARRAY_SIZE)
+	end := min(r.rowCount, r.rowNum+c_ARRAY_SIZE)
 	amount := end - r.offset
 
 	cmd := fmt.Sprintf("Xexport %d %d %d", r.queryId, r.offset, amount)
