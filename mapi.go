@@ -73,8 +73,10 @@ func NewMapi(hostname string, port int, username, password, database, language s
 
 func (c *MapiConn) Disconnect() {
 	c.State = MAPI_STATE_INIT
-	c.conn.Close()
-	c.conn = nil
+	if c.conn != nil {
+		c.conn.Close()
+		c.conn = nil
+	}
 }
 
 func (c *MapiConn) Cmd(operation string) (string, error) {
