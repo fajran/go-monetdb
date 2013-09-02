@@ -65,7 +65,7 @@ func strip(v string) (driver.Value, error) {
 }
 
 func toByteArray(v string) (driver.Value, error) {
-	return []byte(v), nil
+	return []byte(v[1 : len(v)-1]), nil
 }
 
 func toDouble(v string) (driver.Value, error) {
@@ -165,7 +165,7 @@ var toGoMappers = map[string]toGoConverter{
 	INT:            toInt32,
 	WRD:            toInt32,
 	BIGINT:         toInt64,
-	SERIAL:         toInt32,
+	SERIAL:         toInt64,
 	REAL:           toFloat,
 	DOUBLE:         toDouble,
 	BOOLEAN:        toBool,
