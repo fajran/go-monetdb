@@ -32,7 +32,7 @@ func (*Driver) Open(name string) (driver.Conn, error) {
 }
 
 func parseDSN(name string) (config, error) {
-	re := regexp.MustCompile(`((?P<username>.+?)(:(?P<password>.+?))?@)?(?P<hostname>.+?)(:(?P<port>\d+?))?/(?P<database>.+?)`)
+	re := regexp.MustCompile(`^((?P<username>.+?)(:(?P<password>.+?))?@)?(?P<hostname>.+?)(:(?P<port>\d+?))?/(?P<database>.+?)$`)
 	if !re.MatchString(name) {
 		return config{}, fmt.Errorf("Invalid DSN")
 	}
@@ -50,7 +50,7 @@ func parseDSN(name string) (config, error) {
 			c.Password = v
 		} else if n[i] == "hostname" {
 			c.Hostname = v
-		} else if n[i] == "port" {
+		} else if n[i] == "port" && v != "" {
 			c.Port, _ = strconv.Atoi(v)
 		} else if n[i] == "database" {
 			c.Database = v
