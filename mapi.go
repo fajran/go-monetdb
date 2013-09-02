@@ -36,15 +36,27 @@ const (
 	mapi_MSG_TUPLE    = "["
 	mapi_MSG_REDIRECT = "^"
 	mapi_MSG_OK       = "=OK"
-
-	MAPI_STATE_INIT  = 0
-	MAPI_STATE_READY = 1
 )
+
+// MAPI connection is established.
+const MAPI_STATE_READY = 1
+
+// MAPI connection is NOT established.
+const MAPI_STATE_INIT = 0
 
 var (
 	mapi_MSG_MORE = string([]byte{1, 2, 10})
 )
 
+// MapiConn is a MonetDB's MAPI connection handle.
+//
+// The values in the handle are initially set according to the values
+// that are provided when calling NewMapi. However, they may change
+// depending on how the MonetDB server redirects the connection.
+// The final values are available after the connection is made by
+// calling the Connect() function.
+//
+// The State value can be either MAPI_STATE_INIT or MAPI_STATE_READY.
 type MapiConn struct {
 	Hostname string
 	Port     int
@@ -58,6 +70,9 @@ type MapiConn struct {
 	conn *net.TCPConn
 }
 
+// NewMapi returns a MonetDB's MAPI connection handle.
+//
+// To establish the connection, call the Connect() function.
 func NewMapi(hostname string, port int, username, password, database, language string) *MapiConn {
 	return &MapiConn{
 		Hostname: hostname,
@@ -71,6 +86,7 @@ func NewMapi(hostname string, port int, username, password, database, language s
 	}
 }
 
+// Disconnect closes the connection.
 func (c *MapiConn) Disconnect() {
 	c.State = MAPI_STATE_INIT
 	if c.conn != nil {
@@ -79,6 +95,7 @@ func (c *MapiConn) Disconnect() {
 	}
 }
 
+// Cmd sends a MAPI command to MonetDB.
 func (c *MapiConn) Cmd(operation string) (string, error) {
 	if c.State != MAPI_STATE_READY {
 		return "", fmt.Errorf("Database not connected")
@@ -115,6 +132,7 @@ func (c *MapiConn) Cmd(operation string) (string, error) {
 	}
 }
 
+// Connect starts a MAPI connection to MonetDB server.
 func (c *MapiConn) Connect() error {
 	if c.conn != nil {
 		c.conn.Close()
@@ -144,10 +162,12 @@ func (c *MapiConn) Connect() error {
 	return nil
 }
 
+// login starts the login sequence
 func (c *MapiConn) login() error {
 	return c.tryLogin(0)
 }
 
+// tryLogin performs the login activity
 func (c *MapiConn) tryLogin(iteration int) error {
 	challenge, err := c.getBlock()
 	if err != nil {
@@ -213,6 +233,7 @@ func (c *MapiConn) tryLogin(iteration int) error {
 	return nil
 }
 
+// challengeResponse produces a response given a challenge
 func (c *MapiConn) challengeResponse(challenge []byte) (string, error) {
 	t := strings.Split(string(challenge), ":")
 	salt := t[0]
@@ -256,6 +277,7 @@ func (c *MapiConn) challengeResponse(challenge []byte) (string, error) {
 	return r, nil
 }
 
+// getBlock retrieves a block of message
 func (c *MapiConn) getBlock() ([]byte, error) {
 	r := new(bytes.Buffer)
 
@@ -287,6 +309,7 @@ func (c *MapiConn) getBlock() ([]byte, error) {
 	return r.Bytes(), nil
 }
 
+// getBytes reads the given amount of bytes
 func (c *MapiConn) getBytes(count int) ([]byte, error) {
 	r := make([]byte, count)
 	b := make([]byte, count)
@@ -304,6 +327,7 @@ func (c *MapiConn) getBytes(count int) ([]byte, error) {
 	return r, nil
 }
 
+// putBlock sends the given data as one or more blocks
 func (c *MapiConn) putBlock(b []byte) error {
 	pos := 0
 	last := 0
