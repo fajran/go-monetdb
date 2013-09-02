@@ -1,6 +1,7 @@
 package monetdb
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"fmt"
 	"strconv"
@@ -13,12 +14,12 @@ type Stmt struct {
 	conn  *Conn
 	query string
 
-	numInput int
-
 	data *StmtData
 }
 
 type StmtData struct {
+	execId int
+
 	lastRowId   int64
 	rowCount    int64
 	queryId     int64
@@ -43,9 +44,10 @@ func newStmt(c *Conn, q string) Stmt {
 	s := Stmt{
 		conn:  c,
 		query: q,
-		data:  &StmtData{},
+		data: &StmtData{
+			execId: -1,
+		},
 	}
-	s.prepareQuery()
 	return s
 }
 
@@ -56,15 +58,13 @@ func (s Stmt) Close() error {
 }
 
 func (s Stmt) NumInput() int {
-	return s.numInput
+	return -1
 }
 
 func (s Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	res := newResult()
 
-	q := s.bind(args)
-	r, err := s.conn.execute(q)
-
+	r, err := s.exec(args)
 	if err != nil {
 		res.err = err
 		return res, res.err
@@ -81,9 +81,7 @@ func (s Stmt) Exec(args []driver.Value) (driver.Result, error) {
 func (s Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	rows := newRows(s)
 
-	q := s.bind(args)
-	r, err := s.conn.execute(q)
-
+	r, err := s.exec(args)
 	if err != nil {
 		rows.err = err
 		return rows, rows.err
@@ -100,14 +98,40 @@ func (s Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	return rows, rows.err
 }
 
-func (s Stmt) prepareQuery() {
-	s.numInput = strings.Count(s.query, "?")
+func (s Stmt) exec(args []driver.Value) (string, error) {
+	if s.data.execId == -1 {
+		err := s.prepareQuery()
+		if err != nil {
+			return "", err
+		}
+	}
+
+	var b bytes.Buffer
+	b.WriteString(fmt.Sprintf("EXEC %d (", s.data.execId))
+
+	for i, v := range args {
+		str, err := convertToMonet(v)
+		if err != nil {
+			return "", nil
+		}
+		if i > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(str)
+	}
+
+	b.WriteString(")")
+	return s.conn.execute(b.String())
 }
 
-func (s Stmt) bind(args []driver.Value) string {
-	return s.query
-	// TODO
-	// return ""
+func (s Stmt) prepareQuery() error {
+	q := fmt.Sprintf("PREPARE %s", s.query)
+	r, err := s.conn.execute(q)
+	if err != nil {
+		return err
+	}
+
+	return s.storeResult(r)
 }
 
 func (s Stmt) storeResult(r string) error {
@@ -123,6 +147,11 @@ func (s Stmt) storeResult(r string) error {
 		if strings.HasPrefix(line, mapi.MSG_INFO) {
 			// TODO log
 
+		} else if strings.HasPrefix(line, mapi.MSG_QPREPARE) {
+			t := strings.Split(strings.TrimSpace(line[2:]), " ")
+			s.data.execId, _ = strconv.Atoi(t[0])
+			return nil
+
 		} else if strings.HasPrefix(line, mapi.MSG_QTABLE) {
 			t := strings.Split(strings.TrimSpace(line[2:]), " ")
 			s.data.queryId, _ = strconv.ParseInt(t[0], 10, 64)
@@ -136,6 +165,37 @@ func (s Stmt) storeResult(r string) error {
 			precisions = make([]int, s.data.columnCount)
 			scales = make([]int, s.data.columnCount)
 			nullOks = make([]int, s.data.columnCount)
+
+		} else if strings.HasPrefix(line, mapi.MSG_TUPLE) {
+			v, err := s.parseTuple(line)
+			if err != nil {
+				return err
+			}
+			s.data.rows = append(s.data.rows, v)
+
+		} else if strings.HasPrefix(line, mapi.MSG_QBLOCK) {
+			s.data.rows = make([][]driver.Value, 0)
+
+		} else if strings.HasPrefix(line, mapi.MSG_QSCHEMA) {
+			s.data.offset = 0
+			s.data.rows = make([][]driver.Value, 0)
+			s.data.lastRowId = 0
+			s.data.description = nil
+			s.data.rowCount = 0
+
+		} else if strings.HasPrefix(line, mapi.MSG_QUPDATE) {
+			t := strings.Split(strings.TrimSpace(line[2:]), " ")
+			c, _ := strconv.ParseInt(t[0], 10, 64)
+			i, _ := strconv.ParseInt(t[1], 10, 64)
+			s.data.rowCount = c
+			s.data.lastRowId = i
+
+		} else if strings.HasPrefix(line, mapi.MSG_QTRANS) {
+			s.data.offset = 0
+			s.data.rows = make([][]driver.Value, 0, 0)
+			s.data.lastRowId = 0
+			s.data.description = nil
+			s.data.rowCount = 0
 
 		} else if strings.HasPrefix(line, mapi.MSG_HEADER) {
 			t := strings.Split(line[1:], "#")
@@ -176,37 +236,6 @@ func (s Stmt) storeResult(r string) error {
 				internalSizes, precisions, scales, nullOks)
 			s.data.offset = 0
 			s.data.lastRowId = 0
-
-		} else if strings.HasPrefix(line, mapi.MSG_TUPLE) {
-			v, err := s.parseTuple(line)
-			if err != nil {
-				return err
-			}
-			s.data.rows = append(s.data.rows, v)
-
-		} else if strings.HasPrefix(line, mapi.MSG_QBLOCK) {
-			s.data.rows = make([][]driver.Value, 0)
-
-		} else if strings.HasPrefix(line, mapi.MSG_QSCHEMA) {
-			s.data.offset = 0
-			s.data.rows = make([][]driver.Value, 0)
-			s.data.lastRowId = 0
-			s.data.description = nil
-			s.data.rowCount = 0
-
-		} else if strings.HasPrefix(line, mapi.MSG_QUPDATE) {
-			t := strings.Split(strings.TrimSpace(line[2:]), " ")
-			c, _ := strconv.ParseInt(t[0], 10, 64)
-			i, _ := strconv.ParseInt(t[1], 10, 64)
-			s.data.rowCount = c
-			s.data.lastRowId = i
-
-		} else if strings.HasPrefix(line, mapi.MSG_QTRANS) {
-			s.data.offset = 0
-			s.data.rows = make([][]driver.Value, 0, 0)
-			s.data.lastRowId = 0
-			s.data.description = nil
-			s.data.rowCount = 0
 
 		} else if strings.HasPrefix(line, mapi.MSG_PROMPT) {
 			return nil
