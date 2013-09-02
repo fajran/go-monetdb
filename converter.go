@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 const (
@@ -61,7 +62,44 @@ type toGoConverter func(string) (driver.Value, error)
 type toMonetConverter func(driver.Value) (string, error)
 
 func strip(v string) (driver.Value, error) {
-	return strings.TrimSpace(v[1 : len(v)-1]), nil
+	return unquote(strings.TrimSpace(v[1 : len(v)-1]))
+}
+
+// from strconv.contains
+// contains reports whether the string contains the byte c.
+func contains(s string, c byte) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] == c {
+			return true
+		}
+	}
+	return false
+}
+
+// adapted from strconv.Unquote
+func unquote(s string) (string, error) {
+	// Is it trivial?  Avoid allocation.
+	if !contains(s, '\\') {
+		return s, nil
+	}
+
+	var runeTmp [utf8.UTFMax]byte
+	buf := make([]byte, 0, 3*len(s)/2) // Try to avoid more allocations.
+	for len(s) > 0 {
+		c, multibyte, ss, err := strconv.UnquoteChar(s, '\'')
+		if err != nil {
+			fmt.Printf("E: %v\n -> %s\n", err, s)
+			return "", err
+		}
+		s = ss
+		if c < utf8.RuneSelf || !multibyte {
+			buf = append(buf, byte(c))
+		} else {
+			n := utf8.EncodeRune(runeTmp[:], c)
+			buf = append(buf, runeTmp[:n]...)
+		}
+	}
+	return string(buf), nil
 }
 
 func toByteArray(v string) (driver.Value, error) {

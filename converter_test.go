@@ -1,6 +1,7 @@
 package monetdb
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"testing"
 	"time"
@@ -16,6 +17,8 @@ func TestConvertToMonet(t *testing.T) {
 		tc{"string", "'string'"},
 		tc{"quoted 'string'", "'quoted \\'string\\''"},
 		tc{"quoted \"string\"", "'quoted \"string\"'"},
+		tc{"back\\slashed", "'back\\\\slashed'"},
+		tc{"quoted \\'string\\'", "'quoted \\\\\\'string\\\\\\''"},
 		tc{int8(8), "8"},
 		tc{int16(16), "16"},
 		tc{int32(32), "32"},
@@ -69,15 +72,35 @@ func TestConvertToGo(t *testing.T) {
 		tc{"'string'", "varchar", "string"},
 		tc{"'quoted \"string\"'", "char", "quoted \"string\""},
 		tc{"'quoted \\'string\\''", "char", "quoted 'string'"},
-		// tc{"'ABC'", "blob", []uint8{0x41, 0x42, 0x43}},
+		tc{"'quoted \\\\\\'string\\\\\\''", "char", "quoted \\'string\\'"},
+		tc{"'back\\\\slashed'", "char", "back\\slashed"},
+		tc{"'ABC'", "blob", []uint8{0x41, 0x42, 0x43}},
 	}
 
 	for _, c := range tcs {
 		v, err := convertToGo(c.v, c.t)
 		if err != nil {
 			t.Errorf("Error converting value: %v (%s) -> %v", c.v, c.t, err)
-		} else if v != c.e {
-			t.Errorf("Invalid value: %v (%v - %s), expected: %v", v, c.v, c.t, c.e)
+		} else {
+			ok := true
+			switch val := v.(type) {
+			case []byte:
+				ok = compareByteArray(t, val, c.e)
+			default:
+				ok = v == c.e
+			}
+			if !ok {
+				t.Errorf("Invalid value: %v (%v - %s), expected: %v", v, c.v, c.t, c.e)
+			}
 		}
+	}
+}
+
+func compareByteArray(t *testing.T, val []byte, e driver.Value) bool {
+	switch exp := e.(type) {
+	case []byte:
+		return bytes.Compare(val, exp) == 0
+	default:
+		return false
 	}
 }
