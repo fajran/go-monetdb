@@ -3,10 +3,10 @@ package monetdb
 import (
 	"database/sql/driver"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
-	"reflect"
 )
 
 const (
@@ -219,19 +219,19 @@ func toDateTimeString(v driver.Value) (string, error) {
 }
 
 var toMonetMappers = map[string]toMonetConverter{
-	"int": toString,
-	"int8": toString,
-	"int16": toString,
-	"int32": toString,
-	"int64": toString,
-	"float": toString,
-	"float32": toString,
-	"float64": toString,
-	"bool": toString,
-	"string": toQuotedString,
-	"nil": toNull,
-	"[]uint8": toByteString,
-	"time.Time": toQuotedString,
+	"int":          toString,
+	"int8":         toString,
+	"int16":        toString,
+	"int32":        toString,
+	"int64":        toString,
+	"float":        toString,
+	"float32":      toString,
+	"float64":      toString,
+	"bool":         toString,
+	"string":       toQuotedString,
+	"nil":          toNull,
+	"[]uint8":      toByteString,
+	"time.Time":    toQuotedString,
 	"monetdb.Time": toDateTimeString,
 	"monetdb.Date": toDateTimeString,
 }

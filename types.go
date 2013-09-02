@@ -1,8 +1,8 @@
 package monetdb
 
 import (
-	"time"
 	"fmt"
+	"time"
 )
 
 type Time struct {
@@ -10,9 +10,9 @@ type Time struct {
 }
 
 type Date struct {
-	Year int
+	Year  int
 	Month time.Month
-	Day int
+	Day   int
 }
 
 func (t Time) String() string {
@@ -32,4 +32,3 @@ func GetDate(t time.Time) Date {
 	year, month, day := t.Date()
 	return Date{year, month, day}
 }
-
