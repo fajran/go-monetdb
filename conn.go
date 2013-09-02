@@ -7,7 +7,7 @@ import (
 
 type Conn struct {
 	config config
-	mapi   *mapiConn
+	mapi   *MapiConn
 }
 
 func newConn(c config) (*Conn, error) {
@@ -16,7 +16,7 @@ func newConn(c config) (*Conn, error) {
 		mapi:   nil,
 	}
 
-	m := newMapi(c.Hostname, c.Port, c.Username, c.Password, c.Database, "sql")
+	m := NewMapi(c.Hostname, c.Port, c.Username, c.Password, c.Database, "sql")
 	err := m.Connect()
 	if err != nil {
 		return conn, err

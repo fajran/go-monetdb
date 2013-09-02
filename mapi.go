@@ -41,7 +41,7 @@ var (
 	mapi_MSG_MORE = string([]byte{1, 2, 10})
 )
 
-type mapiConn struct {
+type MapiConn struct {
 	Hostname string
 	Port     int
 	Username string
@@ -54,8 +54,8 @@ type mapiConn struct {
 	conn *net.TCPConn
 }
 
-func newMapi(hostname string, port int, username, password, database, language string) *mapiConn {
-	return &mapiConn{
+func NewMapi(hostname string, port int, username, password, database, language string) *MapiConn {
+	return &MapiConn{
 		Hostname: hostname,
 		Port:     port,
 		Username: username,
@@ -67,13 +67,13 @@ func newMapi(hostname string, port int, username, password, database, language s
 	}
 }
 
-func (c *mapiConn) Disconnect() {
+func (c *MapiConn) Disconnect() {
 	c.State = mapi_STATE_INIT
 	c.conn.Close()
 	c.conn = nil
 }
 
-func (c *mapiConn) Cmd(operation string) (string, error) {
+func (c *MapiConn) Cmd(operation string) (string, error) {
 	if c.State != mapi_STATE_READY {
 		return "", fmt.Errorf("not connected")
 	}
@@ -109,7 +109,7 @@ func (c *mapiConn) Cmd(operation string) (string, error) {
 	}
 }
 
-func (c *mapiConn) Connect() error {
+func (c *MapiConn) Connect() error {
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
@@ -138,11 +138,11 @@ func (c *mapiConn) Connect() error {
 	return nil
 }
 
-func (c *mapiConn) login() error {
+func (c *MapiConn) login() error {
 	return c.tryLogin(0)
 }
 
-func (c *mapiConn) tryLogin(iteration int) error {
+func (c *MapiConn) tryLogin(iteration int) error {
 	challenge, err := c.getBlock()
 	if err != nil {
 		return err
@@ -207,7 +207,7 @@ func (c *mapiConn) tryLogin(iteration int) error {
 	return nil
 }
 
-func (c *mapiConn) challengeResponse(challenge []byte) (string, error) {
+func (c *MapiConn) challengeResponse(challenge []byte) (string, error) {
 	t := strings.Split(string(challenge), ":")
 	salt := t[0]
 	protocol := t[2]
@@ -250,7 +250,7 @@ func (c *mapiConn) challengeResponse(challenge []byte) (string, error) {
 	return r, nil
 }
 
-func (c *mapiConn) getBlock() ([]byte, error) {
+func (c *MapiConn) getBlock() ([]byte, error) {
 	r := new(bytes.Buffer)
 
 	last := 0
@@ -281,7 +281,7 @@ func (c *mapiConn) getBlock() ([]byte, error) {
 	return r.Bytes(), nil
 }
 
-func (c *mapiConn) getBytes(count int) ([]byte, error) {
+func (c *MapiConn) getBytes(count int) ([]byte, error) {
 	r := make([]byte, count)
 	b := make([]byte, count)
 
@@ -298,7 +298,7 @@ func (c *mapiConn) getBytes(count int) ([]byte, error) {
 	return r, nil
 }
 
-func (c *mapiConn) putBlock(b []byte) error {
+func (c *MapiConn) putBlock(b []byte) error {
 	pos := 0
 	last := 0
 	for last != 1 {
