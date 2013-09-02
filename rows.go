@@ -7,17 +7,13 @@ import (
 )
 
 type Rows struct {
-	stmt   Stmt
+	stmt   *Stmt
 	active bool
 
 	queryId int
 
 	err error
 
-	data *RowsData
-}
-
-type RowsData struct {
 	rowNum      int
 	offset      int
 	lastRowId   int
@@ -27,37 +23,35 @@ type RowsData struct {
 	columns     []string
 }
 
-func newRows(s Stmt) Rows {
-	return Rows{
+func newRows(s *Stmt) *Rows {
+	return &Rows{
 		stmt:   s,
 		active: true,
 		err:    nil,
-		data: &RowsData{
-			columns: nil,
-			rowNum:  0,
-		},
+
+		columns: nil,
+		rowNum:  0,
 	}
 }
 
-func (r Rows) Columns() []string {
-	if r.data.columns == nil {
-		r.data.columns = make([]string, len(r.data.description))
-		for i, d := range r.data.description {
-			r.data.columns[i] = d.columnName
+func (r *Rows) Columns() []string {
+	if r.columns == nil {
+		r.columns = make([]string, len(r.description))
+		for i, d := range r.description {
+			r.columns[i] = d.columnName
 		}
 	}
-	return r.data.columns
+	return r.columns
 }
 
-func (r Rows) Close() error {
+func (r *Rows) Close() error {
 	r.active = false
-	r.data = nil
 	return nil
 }
 
 var cnt = 0
 
-func (r Rows) Next(dest []driver.Value) error {
+func (r *Rows) Next(dest []driver.Value) error {
 	if !r.active {
 		return fmt.Errorf("rows closed")
 	}
@@ -65,25 +59,25 @@ func (r Rows) Next(dest []driver.Value) error {
 		return fmt.Errorf("query didn't result in a resultset")
 	}
 
-	if r.data.rowNum >= r.data.rowCount {
+	if r.rowNum >= r.rowCount {
 		return io.EOF
 	}
 
-	if r.data.rowNum >= r.data.offset+len(r.data.rows) {
+	if r.rowNum >= r.offset+len(r.rows) {
 		err := r.fetchNext()
 		if err != nil {
 			return err
 		}
 	}
 
-	for i, v := range r.data.rows[r.data.rowNum-r.data.offset] {
+	for i, v := range r.rows[r.rowNum-r.offset] {
 		if vv, ok := v.(string); ok {
 			dest[i] = []byte(vv)
 		} else {
 			dest[i] = v
 		}
 	}
-	r.data.rowNum += 1
+	r.rowNum += 1
 
 	return nil
 }
@@ -100,24 +94,24 @@ func min(a, b int) int {
 	}
 }
 
-func (r Rows) fetchNext() error {
-	if r.data.rowNum >= r.data.rowCount {
+func (r *Rows) fetchNext() error {
+	if r.rowNum >= r.rowCount {
 		return io.EOF
 	}
 
-	r.data.offset += len(r.data.rows)
-	end := min(r.data.rowCount, r.data.rowNum+ARRAY_SIZE)
-	amount := end - r.data.offset
+	r.offset += len(r.rows)
+	end := min(r.rowCount, r.rowNum+ARRAY_SIZE)
+	amount := end - r.offset
 
-	cmd := fmt.Sprintf("Xexport %d %d %d", r.queryId, r.data.offset, amount)
+	cmd := fmt.Sprintf("Xexport %d %d %d", r.queryId, r.offset, amount)
 	res, err := r.stmt.conn.cmd(cmd)
 	if err != nil {
 		return err
 	}
 
 	r.stmt.storeResult(res)
-	r.data.rows = r.stmt.data.rows
-	r.data.description = r.stmt.data.description
+	r.rows = r.stmt.rows
+	r.description = r.stmt.description
 
 	return nil
 }

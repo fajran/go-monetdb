@@ -12,8 +12,8 @@ type Conn struct {
 	mapi   *mapi.Conn
 }
 
-func newConn(c config) (Conn, error) {
-	conn := Conn{
+func newConn(c config) (*Conn, error) {
+	conn := &Conn{
 		config: c,
 		mapi:   nil,
 	}
@@ -28,22 +28,22 @@ func newConn(c config) (Conn, error) {
 	return conn, nil
 }
 
-func (c Conn) Prepare(query string) (driver.Stmt, error) {
-	return newStmt(&c, query), nil
+func (c *Conn) Prepare(query string) (driver.Stmt, error) {
+	return newStmt(c, query), nil
 }
 
-func (c Conn) Close() error {
+func (c *Conn) Close() error {
 	c.mapi.Disconnect()
 	c.mapi = nil
 	return nil
 }
 
-func (c Conn) Begin() (driver.Tx, error) {
+func (c *Conn) Begin() (driver.Tx, error) {
 	// TODO
 	return Tx{}, nil
 }
 
-func (c Conn) cmd(cmd string) (string, error) {
+func (c *Conn) cmd(cmd string) (string, error) {
 	if c.mapi == nil {
 		return "", fmt.Errorf("connection closed")
 	}
@@ -51,7 +51,7 @@ func (c Conn) cmd(cmd string) (string, error) {
 	return c.mapi.Cmd(cmd)
 }
 
-func (c Conn) execute(q string) (string, error) {
+func (c *Conn) execute(q string) (string, error) {
 	cmd := fmt.Sprintf("s%s;", q)
 	return c.cmd(cmd)
 }

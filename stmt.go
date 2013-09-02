@@ -14,10 +14,6 @@ type Stmt struct {
 	conn  *Conn
 	query string
 
-	data *StmtData
-}
-
-type StmtData struct {
 	execId int
 
 	lastRowId   int
@@ -40,28 +36,25 @@ type description struct {
 	nullOk       int
 }
 
-func newStmt(c *Conn, q string) Stmt {
-	s := Stmt{
-		conn:  c,
-		query: q,
-		data: &StmtData{
-			execId: -1,
-		},
+func newStmt(c *Conn, q string) *Stmt {
+	s := &Stmt{
+		conn:   c,
+		query:  q,
+		execId: -1,
 	}
 	return s
 }
 
-func (s Stmt) Close() error {
+func (s *Stmt) Close() error {
 	s.conn = nil
-	s.data = nil
 	return nil
 }
 
-func (s Stmt) NumInput() int {
+func (s *Stmt) NumInput() int {
 	return -1
 }
 
-func (s Stmt) Exec(args []driver.Value) (driver.Result, error) {
+func (s *Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	res := newResult()
 
 	r, err := s.exec(args)
@@ -71,14 +64,14 @@ func (s Stmt) Exec(args []driver.Value) (driver.Result, error) {
 	}
 
 	err = s.storeResult(r)
-	res.lastInsertId = s.data.lastRowId
-	res.rowsAffected = s.data.rowCount
+	res.lastInsertId = s.lastRowId
+	res.rowsAffected = s.rowCount
 	res.err = err
 
 	return res, res.err
 }
 
-func (s Stmt) Query(args []driver.Value) (driver.Rows, error) {
+func (s *Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	rows := newRows(s)
 
 	r, err := s.exec(args)
@@ -88,18 +81,18 @@ func (s Stmt) Query(args []driver.Value) (driver.Rows, error) {
 	}
 
 	err = s.storeResult(r)
-	rows.queryId = s.data.queryId
-	rows.data.lastRowId = s.data.lastRowId
-	rows.data.rowCount = s.data.rowCount
-	rows.data.offset = s.data.offset
-	rows.data.rows = s.data.rows
-	rows.data.description = s.data.description
+	rows.queryId = s.queryId
+	rows.lastRowId = s.lastRowId
+	rows.rowCount = s.rowCount
+	rows.offset = s.offset
+	rows.rows = s.rows
+	rows.description = s.description
 
 	return rows, rows.err
 }
 
-func (s Stmt) exec(args []driver.Value) (string, error) {
-	if s.data.execId == -1 {
+func (s *Stmt) exec(args []driver.Value) (string, error) {
+	if s.execId == -1 {
 		err := s.prepareQuery()
 		if err != nil {
 			return "", err
@@ -107,7 +100,7 @@ func (s Stmt) exec(args []driver.Value) (string, error) {
 	}
 
 	var b bytes.Buffer
-	b.WriteString(fmt.Sprintf("EXEC %d (", s.data.execId))
+	b.WriteString(fmt.Sprintf("EXEC %d (", s.execId))
 
 	for i, v := range args {
 		str, err := convertToMonet(v)
@@ -124,7 +117,7 @@ func (s Stmt) exec(args []driver.Value) (string, error) {
 	return s.conn.execute(b.String())
 }
 
-func (s Stmt) prepareQuery() error {
+func (s *Stmt) prepareQuery() error {
 	q := fmt.Sprintf("PREPARE %s", s.query)
 	r, err := s.conn.execute(q)
 	if err != nil {
@@ -134,7 +127,7 @@ func (s Stmt) prepareQuery() error {
 	return s.storeResult(r)
 }
 
-func (s Stmt) storeResult(r string) error {
+func (s *Stmt) storeResult(r string) error {
 	var columnNames []string
 	var columnTypes []string
 	var displaySizes []int
@@ -149,51 +142,51 @@ func (s Stmt) storeResult(r string) error {
 
 		} else if strings.HasPrefix(line, mapi.MSG_QPREPARE) {
 			t := strings.Split(strings.TrimSpace(line[2:]), " ")
-			s.data.execId, _ = strconv.Atoi(t[0])
+			s.execId, _ = strconv.Atoi(t[0])
 			return nil
 
 		} else if strings.HasPrefix(line, mapi.MSG_QTABLE) {
 			t := strings.Split(strings.TrimSpace(line[2:]), " ")
-			s.data.queryId, _ = strconv.Atoi(t[0])
-			s.data.rowCount, _ = strconv.Atoi(t[1])
-			s.data.columnCount, _ = strconv.Atoi(t[2])
+			s.queryId, _ = strconv.Atoi(t[0])
+			s.rowCount, _ = strconv.Atoi(t[1])
+			s.columnCount, _ = strconv.Atoi(t[2])
 
-			columnNames = make([]string, s.data.columnCount)
-			columnTypes = make([]string, s.data.columnCount)
-			displaySizes = make([]int, s.data.columnCount)
-			internalSizes = make([]int, s.data.columnCount)
-			precisions = make([]int, s.data.columnCount)
-			scales = make([]int, s.data.columnCount)
-			nullOks = make([]int, s.data.columnCount)
+			columnNames = make([]string, s.columnCount)
+			columnTypes = make([]string, s.columnCount)
+			displaySizes = make([]int, s.columnCount)
+			internalSizes = make([]int, s.columnCount)
+			precisions = make([]int, s.columnCount)
+			scales = make([]int, s.columnCount)
+			nullOks = make([]int, s.columnCount)
 
 		} else if strings.HasPrefix(line, mapi.MSG_TUPLE) {
 			v, err := s.parseTuple(line)
 			if err != nil {
 				return err
 			}
-			s.data.rows = append(s.data.rows, v)
+			s.rows = append(s.rows, v)
 
 		} else if strings.HasPrefix(line, mapi.MSG_QBLOCK) {
-			s.data.rows = make([][]driver.Value, 0)
+			s.rows = make([][]driver.Value, 0)
 
 		} else if strings.HasPrefix(line, mapi.MSG_QSCHEMA) {
-			s.data.offset = 0
-			s.data.rows = make([][]driver.Value, 0)
-			s.data.lastRowId = 0
-			s.data.description = nil
-			s.data.rowCount = 0
+			s.offset = 0
+			s.rows = make([][]driver.Value, 0)
+			s.lastRowId = 0
+			s.description = nil
+			s.rowCount = 0
 
 		} else if strings.HasPrefix(line, mapi.MSG_QUPDATE) {
 			t := strings.Split(strings.TrimSpace(line[2:]), " ")
-			s.data.rowCount, _ = strconv.Atoi(t[0])
-			s.data.lastRowId, _ = strconv.Atoi(t[1])
+			s.rowCount, _ = strconv.Atoi(t[0])
+			s.lastRowId, _ = strconv.Atoi(t[1])
 
 		} else if strings.HasPrefix(line, mapi.MSG_QTRANS) {
-			s.data.offset = 0
-			s.data.rows = make([][]driver.Value, 0, 0)
-			s.data.lastRowId = 0
-			s.data.description = nil
-			s.data.rowCount = 0
+			s.offset = 0
+			s.rows = make([][]driver.Value, 0, 0)
+			s.lastRowId = 0
+			s.description = nil
+			s.rowCount = 0
 
 		} else if strings.HasPrefix(line, mapi.MSG_HEADER) {
 			t := strings.Split(line[1:], "#")
@@ -232,8 +225,8 @@ func (s Stmt) storeResult(r string) error {
 
 			s.updateDescription(columnNames, columnTypes, displaySizes,
 				internalSizes, precisions, scales, nullOks)
-			s.data.offset = 0
-			s.data.lastRowId = 0
+			s.offset = 0
+			s.lastRowId = 0
 
 		} else if strings.HasPrefix(line, mapi.MSG_PROMPT) {
 			return nil
@@ -247,15 +240,15 @@ func (s Stmt) storeResult(r string) error {
 	return fmt.Errorf("unknown state: %s", r)
 }
 
-func (s Stmt) parseTuple(d string) ([]driver.Value, error) {
+func (s *Stmt) parseTuple(d string) ([]driver.Value, error) {
 	items := strings.Split(d[1:len(d)-1], ",\t")
-	if len(items) != len(s.data.description) {
+	if len(items) != len(s.description) {
 		return nil, fmt.Errorf("length of row doesn't match header")
 	}
 
 	v := make([]driver.Value, len(items))
 	for i, value := range items {
-		vv, err := s.convert(value, s.data.description[i].columnType)
+		vv, err := s.convert(value, s.description[i].columnType)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +257,7 @@ func (s Stmt) parseTuple(d string) ([]driver.Value, error) {
 	return v, nil
 }
 
-func (s Stmt) updateDescription(
+func (s *Stmt) updateDescription(
 	columnNames, columnTypes []string, displaySizes,
 	internalSizes, precisions, scales, nullOks []int) {
 
@@ -282,10 +275,10 @@ func (s Stmt) updateDescription(
 		d[i] = desc
 	}
 
-	s.data.description = d
+	s.description = d
 }
 
-func (s Stmt) convert(value, dataType string) (driver.Value, error) {
+func (s *Stmt) convert(value, dataType string) (driver.Value, error) {
 	val, err := convertToGo(value, dataType)
 	return val, err
 }
