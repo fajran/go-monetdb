@@ -37,8 +37,8 @@ const (
 	mapi_MSG_REDIRECT = "^"
 	mapi_MSG_OK       = "=OK"
 
-	mapi_STATE_INIT  = 0
-	mapi_STATE_READY = 1
+	MAPI_STATE_INIT  = 0
+	MAPI_STATE_READY = 1
 )
 
 var (
@@ -67,18 +67,18 @@ func NewMapi(hostname string, port int, username, password, database, language s
 		Database: database,
 		Language: language,
 
-		State: mapi_STATE_INIT,
+		State: MAPI_STATE_INIT,
 	}
 }
 
 func (c *MapiConn) Disconnect() {
-	c.State = mapi_STATE_INIT
+	c.State = MAPI_STATE_INIT
 	c.conn.Close()
 	c.conn = nil
 }
 
 func (c *MapiConn) Cmd(operation string) (string, error) {
-	if c.State != mapi_STATE_READY {
+	if c.State != MAPI_STATE_READY {
 		return "", fmt.Errorf("Database not connected")
 	}
 
@@ -206,7 +206,7 @@ func (c *MapiConn) tryLogin(iteration int) error {
 		return fmt.Errorf("Unknown state: %s", prompt)
 	}
 
-	c.State = mapi_STATE_READY
+	c.State = MAPI_STATE_READY
 
 	return nil
 }
