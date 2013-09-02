@@ -75,7 +75,7 @@ func toDouble(v string) (driver.Value, error) {
 func toFloat(v string) (driver.Value, error) {
 	var r float32
 	i, err := strconv.ParseFloat(v, 32)
-	if err != nil {
+	if err == nil {
 		r = float32(i)
 	}
 	return r, err
