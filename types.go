@@ -27,10 +27,20 @@ func (t Time) String() string {
 	return fmt.Sprintf("%02d:%02d:%02d", t.Hour, t.Min, t.Sec)
 }
 
+// Time converts to time.Time. The date is set to January 1, 1970.
+func (t Time) Time() time.Time {
+	return time.Date(1970, time.January, 1, t.Hour, t.Min, t.Sec, 0, time.UTC)
+}
+
 // String returns a string representation of a Date
 // in the form "YYYY-MM-DD"
 func (d Date) String() string {
 	return fmt.Sprintf("%04d-%02d-%02d", d.Year, d.Month, d.Day)
+}
+
+// Time converts to time.Time. The time is set to 00:00:00.
+func (d Date) Time() time.Time {
+	return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, time.UTC)
 }
 
 // GetTime takes the clock part of a time.Time and put it in a Time
