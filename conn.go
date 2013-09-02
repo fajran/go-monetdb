@@ -39,8 +39,14 @@ func (c *Conn) Close() error {
 }
 
 func (c *Conn) Begin() (driver.Tx, error) {
-	// TODO
-	return Tx{}, nil
+	t := newTx(c)
+
+	_, err := c.execute("START TRANSACTION")
+	if err != nil {
+		t.err = err
+	}
+
+	return t, t.err
 }
 
 func (c *Conn) cmd(cmd string) (string, error) {
