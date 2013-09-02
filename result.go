@@ -1,8 +1,8 @@
 package monetdb
 
 type Result struct {
-	lastInsertId int64
-	rowsAffected int64
+	lastInsertId int
+	rowsAffected int
 	err          error
 }
 
@@ -15,9 +15,9 @@ func newResult() Result {
 }
 
 func (r Result) LastInsertId() (int64, error) {
-	return r.lastInsertId, r.err
+	return int64(r.lastInsertId), r.err
 }
 
 func (r Result) RowsAffected() (int64, error) {
-	return r.rowsAffected, r.err
+	return int64(r.rowsAffected), r.err
 }

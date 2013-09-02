@@ -20,11 +20,11 @@ type Stmt struct {
 type StmtData struct {
 	execId int
 
-	lastRowId   int64
-	rowCount    int64
-	queryId     int64
-	offset      int64
-	columnCount int64
+	lastRowId   int
+	rowCount    int
+	queryId     int
+	offset      int
+	columnCount int
 
 	rows        [][]driver.Value
 	description []description
@@ -154,9 +154,9 @@ func (s Stmt) storeResult(r string) error {
 
 		} else if strings.HasPrefix(line, mapi.MSG_QTABLE) {
 			t := strings.Split(strings.TrimSpace(line[2:]), " ")
-			s.data.queryId, _ = strconv.ParseInt(t[0], 10, 64)
-			s.data.rowCount, _ = strconv.ParseInt(t[1], 10, 64)
-			s.data.columnCount, _ = strconv.ParseInt(t[2], 10, 64)
+			s.data.queryId, _ = strconv.Atoi(t[0])
+			s.data.rowCount, _ = strconv.Atoi(t[1])
+			s.data.columnCount, _ = strconv.Atoi(t[2])
 
 			columnNames = make([]string, s.data.columnCount)
 			columnTypes = make([]string, s.data.columnCount)
@@ -185,10 +185,8 @@ func (s Stmt) storeResult(r string) error {
 
 		} else if strings.HasPrefix(line, mapi.MSG_QUPDATE) {
 			t := strings.Split(strings.TrimSpace(line[2:]), " ")
-			c, _ := strconv.ParseInt(t[0], 10, 64)
-			i, _ := strconv.ParseInt(t[1], 10, 64)
-			s.data.rowCount = c
-			s.data.lastRowId = i
+			s.data.rowCount, _ = strconv.Atoi(t[0])
+			s.data.lastRowId, _ = strconv.Atoi(t[1])
 
 		} else if strings.HasPrefix(line, mapi.MSG_QTRANS) {
 			s.data.offset = 0
@@ -218,8 +216,8 @@ func (s Stmt) storeResult(r string) error {
 				for i, value := range values {
 					s := make([]int, 0)
 					for _, v := range strings.Split(value, " ") {
-						val, _ := strconv.ParseInt(v, 10, 32)
-						s = append(s, int(val))
+						val, _ := strconv.Atoi(v)
+						s = append(s, val)
 					}
 					internalSizes[i] = s[0]
 					sizes = append(sizes, s)

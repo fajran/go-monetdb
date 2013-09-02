@@ -10,7 +10,7 @@ type Rows struct {
 	stmt   Stmt
 	active bool
 
-	queryId int64
+	queryId int
 
 	err error
 
@@ -18,10 +18,10 @@ type Rows struct {
 }
 
 type RowsData struct {
-	rowNum      int64
-	offset      int64
-	lastRowId   int64
-	rowCount    int64
+	rowNum      int
+	offset      int
+	lastRowId   int
+	rowCount    int
 	rows        [][]driver.Value
 	description []description
 	columns     []string
@@ -69,7 +69,7 @@ func (r Rows) Next(dest []driver.Value) error {
 		return io.EOF
 	}
 
-	if r.data.rowNum >= r.data.offset+int64(len(r.data.rows)) {
+	if r.data.rowNum >= r.data.offset+len(r.data.rows) {
 		err := r.fetchNext()
 		if err != nil {
 			return err
@@ -93,7 +93,7 @@ const (
 	ARRAY_SIZE = 100
 )
 
-func min(a, b int64) int64 {
+func min(a, b int) int {
 	if a < b {
 		return a
 	} else {
@@ -106,7 +106,7 @@ func (r Rows) fetchNext() error {
 		return io.EOF
 	}
 
-	r.data.offset += int64(len(r.data.rows))
+	r.data.offset += len(r.data.rows)
 	end := min(r.data.rowCount, r.data.rowNum+ARRAY_SIZE)
 	amount := end - r.data.offset
 
