@@ -76,7 +76,6 @@ func (r Rows) Next(dest []driver.Value) error {
 		}
 	}
 
-	fmt.Printf("rows len: %d\n", len(r.data.rows))
 	for i, v := range r.data.rows[r.data.rowNum-r.data.offset] {
 		if vv, ok := v.(string); ok {
 			dest[i] = []byte(vv)
