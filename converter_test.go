@@ -63,6 +63,7 @@ func TestConvertToGo(t *testing.T) {
 		tc{"32", "mediumint", int32(32)},
 		tc{"64", "bigint", int64(64)},
 		tc{"64", "longint", int64(64)},
+		tc{"64", "hugeint", int64(64)},
 		tc{"64", "serial", int64(64)},
 		tc{"3.2", "float", float32(3.2)},
 		tc{"3.2", "real", float32(3.2)},
