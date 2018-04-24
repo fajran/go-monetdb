@@ -23,6 +23,7 @@ const (
 	mdb_SMALLINT  = "smallint" // 16 bit integer
 	mdb_INT       = "int"      // 32 bit integer
 	mdb_BIGINT    = "bigint"   // 64 bit integer
+	mdb_HUGEINT   = "hugeint"  // 64 bit integer
 	mdb_SERIAL    = "serial"   // special 64 bit integer sequence generator
 	mdb_REAL      = "real"     // 32 bit floating point
 	mdb_DOUBLE    = "double"   // 64 bit floating point
@@ -207,6 +208,7 @@ var toGoMappers = map[string]toGoConverter{
 	mdb_INT:            toInt32,
 	mdb_WRD:            toInt32,
 	mdb_BIGINT:         toInt64,
+	mdb_HUGEINT:        toInt64,
 	mdb_SERIAL:         toInt64,
 	mdb_REAL:           toFloat,
 	mdb_DOUBLE:         toDouble,
